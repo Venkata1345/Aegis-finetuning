@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.env
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Data — too large for git. Hand-written eval sets (e.g. adversarial.jsonl)
+# live under data/eval/ and ARE checked in; everything else is regenerable.
+data/raw/
+data/processed/
+
+# Model artifacts
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+checkpoints/
+adapters/
+
+# Tracking
+wandb/
+
+# Eval results — large per-instance logs + run-specific JSONs (regenerable)
+eval/results/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

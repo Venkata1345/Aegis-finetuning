@@ -1,0 +1,14 @@
+# Aegis — training-only deps. Install on Colab A100, NOT on local Windows.
+# `make setup-train` installs requirements.txt + this file.
+
+unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
+bitsandbytes>=0.43
+trl>=0.9
+
+# Re-pin core libs so Unsloth doesn't drift them out from under the eval stack
+transformers>=4.44
+peft>=0.11
+accelerate>=0.30
+datasets>=2.20
+wandb>=0.17
+huggingface_hub>=0.24
