@@ -51,6 +51,10 @@ def _build_predictor(name: str) -> Predictor:
         from baselines.qwen_base import BaseQwenPredictor
 
         return BaseQwenPredictor()
+    if name == "aegis":
+        from baselines.aegis_caller import AegisPredictor
+
+        return AegisPredictor()
     raise ValueError(f"Unknown predictor: {name}")
 
 
@@ -94,7 +98,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "predictor",
-        choices=["presidio", "openai", "gemini", "qwen-base"],
+        choices=["presidio", "openai", "gemini", "qwen-base", "aegis"],
         help="Which baseline to run.",
     )
     ap.add_argument(
