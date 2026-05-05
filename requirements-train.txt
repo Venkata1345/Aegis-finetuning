@@ -1,8 +1,10 @@
 # Aegis — training-only deps. Install on Colab A100, NOT on local Windows.
 # `make setup-train` installs requirements.txt + this file.
 
-unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
-bitsandbytes>=0.43
+# Unsloth ships its own pinned matrix of compatible deps — install from PyPI
+# rather than the (now-deprecated) [colab-new] extras alias.
+unsloth
+bitsandbytes>=0.46.1  # transformers' bnb 4-bit quantizer requires this floor
 trl>=0.9
 
 # Re-pin core libs so Unsloth doesn't drift them out from under the eval stack
