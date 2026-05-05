@@ -3,8 +3,8 @@
 Same SYSTEM_PROMPT as other baselines; passed via system_instruction so
 the user message is just the input text. Temperature 0; max_output_tokens 512.
 
-Pricing constants in USD per 1M tokens — Gemini 1.5 Flash list price as
-of end-of-2025. Update if rates change; recorded in eval output.
+Pricing constants in USD per 1M tokens — Gemini 2.5 Flash list price.
+Update if rates change; recorded in eval output.
 
 Safety filters: certain inputs (medical contexts, sensitive PII) may
 trigger Gemini's safety system and return an empty response. We catch
@@ -21,10 +21,9 @@ from baselines.base import Prediction, Predictor, Pricing, realign_to_input
 from inference.prompts import SYSTEM_PROMPT
 
 # Update when rates change.
-GEMINI_FLASH_PRICING = Pricing(input_per_1m=0.075, output_per_1m=0.30)
+GEMINI_FLASH_PRICING = Pricing(input_per_1m=0.30, output_per_1m=2.50)
 
-# Default model id — newer Flash variants are list-priced equivalently.
-DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 class GeminiPredictor(Predictor):
