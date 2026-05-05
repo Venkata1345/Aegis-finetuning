@@ -53,6 +53,40 @@ class Prediction:
     error: str | None = None
 
 
+def realign_to_input(text: str, spans: list[Span]) -> list[Span]:
+    """Realign predicted spans to actual positions in the input text.
+
+    LLM-based predictors reliably extract correct PII text but produce
+    unreliable character offsets — they're sequence generators, not arithmetic
+    engines. This searches each predicted ``span.text`` as a substring of
+    ``text`` and uses the found offset (closest to the model's claimed
+    position when multiple matches exist).
+
+    Spans whose text isn't found in the input are kept with the model's
+    original offsets — they will then correctly count as hallucinations
+    via ``hallucination_rate`` in the eval harness.
+
+    This is post-processing, not a model fix. Document its use in the
+    README so the methodology is honest.
+    """
+    out: list[Span] = []
+    for s in spans:
+        idxs: list[int] = []
+        i = 0
+        while True:
+            j = text.find(s.text, i)
+            if j < 0:
+                break
+            idxs.append(j)
+            i = j + 1
+        if not idxs:
+            out.append(s)
+            continue
+        best = min(idxs, key=lambda x: abs(x - s.start))
+        out.append(Span(type=s.type, start=best, end=best + len(s.text), text=s.text))
+    return out
+
+
 def strip_code_fences(s: str) -> str:
     """Remove leading/trailing ```json ... ``` (or plain ```) fences if present.
 

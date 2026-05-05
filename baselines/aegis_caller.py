@@ -11,8 +11,9 @@ Set AEGIS_ADAPTER_REPO in env to point at your HF Hub adapter repo.
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 
-from baselines.base import Predictor, Pricing
+from baselines.base import Predictor, Pricing, Prediction, realign_to_input
 from inference.prompts import SYSTEM_PROMPT
 
 DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
@@ -51,6 +52,20 @@ class AegisPredictor(Predictor):
         self.model = PeftModel.from_pretrained(base, adapter_repo)
         self.model.eval()
         self.max_new_tokens = max_new_tokens
+
+    def predict(self, text: str) -> Prediction:
+        """Override to apply input-realignment post-process.
+
+        The model emits correct PII text but unreliable character offsets
+        (verified empirically on adversarial: raw F1 0.03 vs aligned 0.45).
+        Realignment maps span.text back to actual positions in the input.
+        Documented in README; the raw model output is preserved on
+        Prediction.raw for schema_validity_rate.
+        """
+        pred = super().predict(text)
+        if pred.spans:
+            pred = replace(pred, spans=realign_to_input(text, pred.spans))
+        return pred
 
     def _predict_impl(self, text: str) -> tuple[str, int | None, int | None]:
         import torch

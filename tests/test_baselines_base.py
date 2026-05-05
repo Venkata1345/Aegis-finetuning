@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from baselines.base import Pricing, Predictor
+from baselines.base import Pricing, Predictor, realign_to_input
+from data.schema import Span
 
 
 class TestPricing:
@@ -50,3 +51,52 @@ class TestPredictBatchDefault:
         p = _CountingFake()
         assert p.predict_batch([]) == []
         assert p.calls == 0
+
+
+class TestRealignToInput:
+    def _span(self, type_, start, end, text):
+        return Span(type=type_, start=start, end=end, text=text)
+
+    def test_correct_offset_unchanged(self):
+        # Already correct → realignment leaves it as-is
+        text = "Hello Alice"
+        spans = [self._span("PERSON", 6, 11, "Alice")]
+        out = realign_to_input(text, spans)
+        assert out[0].start == 6 and out[0].end == 11 and out[0].text == "Alice"
+
+    def test_wrong_offset_corrected(self):
+        # Model emitted right text, wrong offsets — should snap to actual position
+        text = "Hello Alice"
+        spans = [self._span("PERSON", 0, 5, "Alice")]
+        out = realign_to_input(text, spans)
+        assert out[0].start == 6 and out[0].end == 11 and out[0].text == "Alice"
+
+    def test_text_not_in_input_kept_as_is(self):
+        # Model hallucinated text not in input — keep original; halluc metric catches it
+        text = "Hello world"
+        spans = [self._span("PERSON", 0, 3, "Bob")]
+        out = realign_to_input(text, spans)
+        assert out[0].start == 0 and out[0].end == 3 and out[0].text == "Bob"
+
+    def test_multiple_occurrences_picks_closest(self):
+        # "Bob" at positions 0 and 13. Model claimed start=12 → pick 13 not 0.
+        text = "Bob said hi. Bob left."
+        spans = [self._span("PERSON", 12, 15, "Bob")]
+        out = realign_to_input(text, spans)
+        assert out[0].start == 13 and out[0].end == 16
+
+    def test_multiple_occurrences_picks_closest_other_direction(self):
+        text = "Bob said hi. Bob left."
+        spans = [self._span("PERSON", 1, 4, "Bob")]
+        out = realign_to_input(text, spans)
+        assert out[0].start == 0 and out[0].end == 3
+
+    def test_phone_offset_off_by_significant_amount(self):
+        # Real example from Aegis adversarial: model claimed start=10 for text at 11
+        text = "Call me at 5 5 5 - 4 1 6 - 2 9 8 7."
+        spans = [self._span("PHONE", 10, 27, "5 5 5 - 4 1 6 - 2 9 8 7")]
+        out = realign_to_input(text, spans)
+        assert out[0].start == 11
+        assert out[0].end == 11 + len("5 5 5 - 4 1 6 - 2 9 8 7")
+        # Aligned span text matches input slice
+        assert text[out[0].start:out[0].end] == out[0].text
