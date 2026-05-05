@@ -15,8 +15,9 @@ schema_validity_rate counts it as failed.
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 
-from baselines.base import Predictor, Pricing
+from baselines.base import Prediction, Predictor, Pricing, realign_to_input
 from inference.prompts import SYSTEM_PROMPT
 
 # Update when rates change.
@@ -48,6 +49,15 @@ class GeminiPredictor(Predictor):
         )
         self.max_tokens = max_tokens
         super().__init__(name=f"gemini:{model}", pricing=GEMINI_FLASH_PRICING)
+
+    def predict(self, text: str) -> Prediction:
+        # LLM-based predictors emit correct PII text but unreliable offsets;
+        # realign to actual input positions. Same treatment as AegisPredictor
+        # for fairness — see baselines/base.py::realign_to_input.
+        pred = super().predict(text)
+        if pred.spans:
+            pred = replace(pred, spans=realign_to_input(text, pred.spans))
+        return pred
 
     def _predict_impl(self, text: str) -> tuple[str, int | None, int | None]:
         resp = self.model_obj.generate_content(

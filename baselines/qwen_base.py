@@ -11,7 +11,9 @@ to bfloat16 to fit in VRAM.
 
 from __future__ import annotations
 
-from baselines.base import Predictor, Pricing
+from dataclasses import replace
+
+from baselines.base import Prediction, Predictor, Pricing, realign_to_input
 from inference.prompts import SYSTEM_PROMPT
 
 DEFAULT_MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
@@ -40,6 +42,15 @@ class BaseQwenPredictor(Predictor):
         self.model.eval()
         self.device = device
         self.max_new_tokens = max_new_tokens
+
+    def predict(self, text: str) -> Prediction:
+        # LLM-based predictors emit correct PII text but unreliable offsets;
+        # realign to actual input positions. Same treatment as AegisPredictor
+        # for fairness — see baselines/base.py::realign_to_input.
+        pred = super().predict(text)
+        if pred.spans:
+            pred = replace(pred, spans=realign_to_input(text, pred.spans))
+        return pred
 
     def _predict_impl(self, text: str) -> tuple[str, int | None, int | None]:
         import torch
